@@ -24,6 +24,7 @@ import org.apache.cxf.jaxrs.lifecycle.ResourceProvider;
 import org.apache.cxf.message.Message;
 import org.osgi.framework.ServiceObjects;
 import org.osgi.framework.ServiceReference;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.jaxrs.runtime.dto.FailedApplicationDTO;
 
 import javax.ws.rs.core.Application;
@@ -62,11 +63,11 @@ public class Utils {
     }
 
     public static OSGi<?> cxfRegistrator(
-        Bus bus, Application application, Map<String, Object> props) {
+        ChangeCounter changeCounter, Bus bus, Application application, Map<String, Object> props) {
 
         try {
             CXFJaxRsServiceRegistrator registrator =
-                new CXFJaxRsServiceRegistrator(bus, application, props);
+                new CXFJaxRsServiceRegistrator(changeCounter, bus, application, props);
 
             return
                 onClose(registrator::close).then(

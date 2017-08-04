@@ -36,9 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Dictionary;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static java.lang.String.format;
 import static org.apache.aries.jax.rs.whiteboard.internal.Utils.cxfRegistrator;
@@ -75,15 +73,16 @@ public class Whiteboard {
         return
             bundleContext().flatMap(bundleContext ->
             just(createBus(bundleContext, configuration)).flatMap(bus ->
-            just(createDefaultJaxRsServiceRegistrator(bus)).flatMap(defaultServiceRegistrator ->
-            registerJaxRSServiceRuntime(bundleContext, bus, Maps.from(configuration)).flatMap(registratorRegistration ->
-            just(new ServiceRegistrationChangeCounter(registratorRegistration)).flatMap(counter ->
+            registerJaxRSServiceRuntime(bundleContext, bus, Maps.from(configuration)).flatMap(jaxRsServiceRuntimeRegistration ->
+            just(new ChangeCounter(jaxRsServiceRuntimeRegistration)).flatMap(counter ->
+            just(createDefaultJaxRsServiceRegistrator(counter, bus)).flatMap(defaultServiceRegistrator ->
+            just(jaxRsServiceRuntimeRegistration.getReference()).flatMap(reference ->
                 all(
-                    countChanges(whiteboardApplications(bus), counter),
-                    countChanges(whiteBoardApplicationSingletons(), counter),
-                    countChanges(whiteboardExtensions(defaultServiceRegistrator), counter),
-                    countChanges(whiteboardSingletons(defaultServiceRegistrator), counter)
-            ))))));
+                    whiteboardApplications(reference, counter, bus),
+                    whiteBoardApplicationSingletons(reference),
+                    whiteboardExtensions(reference, defaultServiceRegistrator),
+                    whiteboardSingletons(reference, defaultServiceRegistrator)
+            )))))));
     }
 
     private static OSGi<Collection<String>> bestEffortCalculationOfEnpoints(Filter filter) {
@@ -132,14 +131,14 @@ public class Whiteboard {
     }
 
     private static CXFJaxRsServiceRegistrator createDefaultJaxRsServiceRegistrator(
-        ExtensionManagerBus bus) {
+        ChangeCounter changeCounter, ExtensionManagerBus bus) {
 
         Map<String, Object> properties = new HashMap<>();
         properties.put(JAX_RS_APPLICATION_BASE, "/");
         properties.put(JAX_RS_NAME, ".default");
 
         return new CXFJaxRsServiceRegistrator(
-            bus, new DefaultApplication(), properties);
+            changeCounter, bus, new DefaultApplication(), properties);
     }
 
     private static String getApplicationFilter() {
@@ -215,9 +214,10 @@ public class Whiteboard {
         return program;
     }
 
-    private static OSGi<?> whiteBoardApplicationSingletons() {
+    private static OSGi<?> whiteBoardApplicationSingletons(ServiceReference<?> jaxRsRuntimeServiceReference) {
         return
             serviceReferences(format("(%s=*)", JAX_RS_APPLICATION_SELECT)).
+                filter(new TargetFilter<>(jaxRsRuntimeServiceReference)).
                 flatMap(ref ->
             just(ref.getProperty(JAX_RS_APPLICATION_SELECT).toString()).
                 flatMap(applicationFilter ->
@@ -227,23 +227,28 @@ public class Whiteboard {
         )));
     }
 
-    private static OSGi<?> whiteboardApplications(ExtensionManagerBus bus) {
+    private static OSGi<?> whiteboardApplications(
+        ServiceReference<?> jaxRsRuntimeServiceReference, ChangeCounter changeCounter, ExtensionManagerBus bus) {
+
         return
             repeatInOrder(
-                serviceReferences(Application.class, getApplicationFilter())).
+                serviceReferences(Application.class, getApplicationFilter()).
+                    filter(new TargetFilter<>(jaxRsRuntimeServiceReference))).
                 flatMap(ref ->
             just(CXFJaxRsServiceRegistrator.getProperties(ref, JAX_RS_APPLICATION_BASE)).
                 flatMap(properties ->
             service(ref).flatMap(application ->
-            cxfRegistrator(bus, application, properties)
+            cxfRegistrator(changeCounter, bus, application, properties)
         )));
     }
 
     private static OSGi<?> whiteboardExtensions(
-        CXFJaxRsServiceRegistrator defaultServiceRegistrator) {
+        ServiceReference<?> jaxRsRuntimeServiceReference, CXFJaxRsServiceRegistrator defaultServiceRegistrator) {
 
         return
-            serviceReferences(getExtensionFilter()).flatMap(ref ->
+            serviceReferences(getExtensionFilter()).
+                filter(new TargetFilter<>(jaxRsRuntimeServiceReference)).
+                flatMap(ref ->
             waitForExtensionDependencies(ref,
                 safeRegisterExtension(ref, defaultServiceRegistrator)
             )
@@ -251,66 +256,17 @@ public class Whiteboard {
     }
 
     private static OSGi<?> whiteboardSingletons(
-        CXFJaxRsServiceRegistrator defaultServiceRegistrator) {
+        ServiceReference<?> jaxRsRuntimeServiceReference, CXFJaxRsServiceRegistrator defaultServiceRegistrator) {
 
         return
             serviceReferences(getSingletonsFilter()).
+                filter(new TargetFilter<>(jaxRsRuntimeServiceReference)).
                 flatMap(serviceReference ->
             waitForExtensionDependencies(serviceReference,
                 safeRegisterEndpoint(
                     serviceReference, defaultServiceRegistrator)
             )
         );
-    }
-
-    private static <T> OSGi<T> countChanges(
-        OSGi<T> program, ChangeCounter counter) {
-
-        return program.map(t -> {counter.inc(); return t;});
-    }
-
-    private static interface ChangeCounter {
-
-        public void inc();
-
-    }
-
-    private static class ServiceRegistrationChangeCounter
-        implements ChangeCounter{
-
-        private static final String changecount = "service.changecount";
-        private final AtomicLong _atomicLong = new AtomicLong();
-        private ServiceRegistration<?> _serviceRegistration;
-        private final Hashtable<String, Object> _properties;
-
-        public ServiceRegistrationChangeCounter(
-            ServiceRegistration<?> serviceRegistration) {
-
-            _serviceRegistration = serviceRegistration;
-
-            ServiceReference<?> serviceReference =
-                _serviceRegistration.getReference();
-
-            _properties = new Hashtable<>();
-
-            for (String propertyKey : serviceReference.getPropertyKeys()) {
-                _properties.put(
-                    propertyKey, serviceReference.getProperty(propertyKey));
-            }
-        }
-
-        @Override
-        public void inc() {
-            long l = _atomicLong.incrementAndGet();
-
-            @SuppressWarnings("unchecked")
-            Hashtable<String, Object> properties =
-                (Hashtable<String, Object>)_properties.clone();
-
-            properties.put(changecount, l);
-
-            _serviceRegistration.setProperties(properties);
-        }
     }
 
 }

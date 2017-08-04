@@ -55,15 +55,17 @@ public class CXFJaxRsServiceRegistrator {
     private final Collection<Object> _providers = new ArrayList<>();
     private Server _server;
     private final Collection<ResourceProvider> _services = new ArrayList<>();
+    private final ChangeCounter _changeCounter;
 
     private static final String CXF_ENDPOINT_ADDRESS = "CXF_ENDPOINT_ADDRESS";
 
     public CXFJaxRsServiceRegistrator(
-        Bus bus, Application application, Map<String, Object> properties) {
+        ChangeCounter changeCounter, Bus bus, Application application, Map<String, Object> properties) {
 
         _bus = bus;
         _application = application;
         _properties = properties;
+        _changeCounter = changeCounter;
 
         rewire();
     }
@@ -113,6 +115,8 @@ public class CXFJaxRsServiceRegistrator {
         }
 
         _closed = true;
+
+        _changeCounter.inc();
     }
 
     public void remove(ResourceProvider resourceProvider) {
@@ -226,6 +230,8 @@ public class CXFJaxRsServiceRegistrator {
         _server = jaxRsServerFactoryBean.create();
 
         _server.start();
+
+        _changeCounter.inc();
     }
 
     public <T> T createEndpoint(Application app, Class<T> endpointType) {
