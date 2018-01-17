@@ -51,7 +51,9 @@ import org.osgi.service.jaxrs.runtime.dto.DTOConstants;
 import org.osgi.service.jaxrs.runtime.dto.FailedApplicationDTO;
 import org.osgi.service.jaxrs.runtime.dto.RuntimeDTO;
 import org.osgi.util.tracker.ServiceTracker;
+import test.types.AnotherResourceWithSubResource;
 import test.types.ConfigurationAwareResource;
+import test.types.ResourceWithSubResource;
 import test.types.TestAddon;
 import test.types.TestAddonConflict;
 import test.types.TestAddonConflict2;
@@ -857,6 +859,40 @@ public class JaxrsTest extends TestHelper {
         assertEquals(
             DTOConstants.FAILURE_REASON_UNKNOWN,
             runtimeDTO.failedExtensionDTOs[0].failureReason);
+    }
+
+    @Test
+    public void testSubresource() {
+        WebTarget webTarget = createDefaultTarget().path("test-application");
+
+        registerApplication(new TestApplication(), JAX_RS_NAME, "test");
+        registerAddon(
+            new ResourceWithSubResource(), JAX_RS_APPLICATION_SELECT,
+            "(" + JAX_RS_NAME + "=test)");
+        registerAddon(
+            new AnotherResourceWithSubResource(), JAX_RS_APPLICATION_SELECT,
+            "(" + JAX_RS_NAME + "=test)");
+
+        System.out.println(
+            webTarget.path("/resource1").request().get(String.class));
+        System.out.println(
+            webTarget.path("/resource2").request().get(String.class));
+
+        System.out.println(
+            webTarget.
+                path("/resource1").
+                path("/path").
+                path("/path").
+                path("/path").
+                request().get(String.class));
+        System.out.println(
+            webTarget.
+                path("/resource2").
+                path("/path").
+                path("/path").
+                path("/path").
+                request().get(String.class));
+
     }
 
     @Test
