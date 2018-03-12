@@ -55,7 +55,10 @@ import org.apache.cxf.jaxrs.model.ClassResourceInfo;
 import org.apache.cxf.jaxrs.provider.ProviderFactory.ProviderInfoClassComparator;
 import org.apache.cxf.jaxrs.provider.ServerConfigurableFactory;
 import org.apache.cxf.jaxrs.utils.AnnotationUtils;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceObjects;
+import org.osgi.framework.wiring.BundleWiring;
 
 public class CxfJaxrsServiceRegistrator {
 
@@ -204,6 +207,10 @@ public class CxfJaxrsServiceRegistrator {
 
         _jaxRsServerFactoryBean.setBus(_bus);
 
+        Bundle applicationBundle = _applicationTuple.getCachingServiceReference().getServiceReference().getBundle();
+
+        _bus.setExtension(applicationBundle.getBundleContext(), BundleContext.class);
+        _bus.setExtension(applicationBundle.adapt(BundleWiring.class).getClassLoader(), ClassLoader.class);
         _bus.setExtension(
             context -> {
                 ConfigurableImpl<FeatureContext> configurable =

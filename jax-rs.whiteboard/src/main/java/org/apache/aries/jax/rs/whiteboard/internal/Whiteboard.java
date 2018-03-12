@@ -25,7 +25,6 @@ import org.apache.aries.jax.rs.whiteboard.internal.utils.ServiceTuple;
 import org.apache.aries.osgi.functional.CachingServiceReference;
 import org.apache.aries.osgi.functional.OSGi;
 import org.apache.aries.osgi.functional.OSGiResult;
-import org.apache.commons.collections.Factory;
 import org.apache.cxf.Bus;
 import org.apache.cxf.bus.extension.ExtensionManagerBus;
 import org.apache.cxf.transport.servlet.CXFNonSpringServlet;
@@ -42,6 +41,9 @@ import org.osgi.service.http.context.ServletContextHelper;
 import org.osgi.service.jaxrs.runtime.JaxrsServiceRuntime;
 
 import javax.servlet.Servlet;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.container.DynamicFeature;
@@ -397,7 +399,6 @@ public class Whiteboard {
         BundleWiring wiring = _bundleContext.getBundle().adapt(
             BundleWiring.class);
 
-        @SuppressWarnings("unchecked")
         Map<String, Object> properties = new HashMap<>(_configurationMap);
 
         ExtensionManagerBus bus = new ExtensionManagerBus(
@@ -751,7 +752,7 @@ public class Whiteboard {
                     extensionFilter.match(_runtimeReference) ||
                     extensionFilter.match(
                         applicationRegistratorReference.getServiceReference())) {
-                    
+
                     continue;
                 }
 
@@ -832,8 +833,24 @@ public class Whiteboard {
         );
     }
 
-    private static CXFNonSpringServlet createCXFServlet(Bus bus) {
-        CXFNonSpringServlet cxfNonSpringServlet = new CXFNonSpringServlet();
+    private static CXFNonSpringServlet createCXFServlet(
+        Bus bus, final Supplier<Map<String, ?>> servletPropertiesSup) {
+
+        CXFNonSpringServlet cxfNonSpringServlet = new CXFNonSpringServlet() {
+            private static final long serialVersionUID = -5905277610039361285L;
+            @Override
+            public void init(ServletConfig sc) throws ServletException {
+                super.init(sc);
+
+                ServletContext context = sc.getServletContext();
+                if (servletPropertiesSup.get().containsKey("servlet.init.transportId")) {
+                    context = sc.getServletContext().getContext("");
+                    if (context == null)
+                        context = sc.getServletContext();
+                }
+                getBus().setExtension(context, ServletContext.class);
+            }
+        };
         cxfNonSpringServlet.setBus(bus);
         return cxfNonSpringServlet;
     }
@@ -925,7 +942,7 @@ public class Whiteboard {
                     () -> new ServletContextHelper() {}, contextPropertiesSup).
                 then(
             register(
-                    Servlet.class, () -> createCXFServlet(bus),
+                    Servlet.class, () -> createCXFServlet(bus, servletPropertiesSup),
                     servletPropertiesSup));
     }
 

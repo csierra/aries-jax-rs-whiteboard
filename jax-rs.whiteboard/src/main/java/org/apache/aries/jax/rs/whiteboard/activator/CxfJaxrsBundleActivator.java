@@ -30,6 +30,7 @@ import org.apache.aries.jax.rs.whiteboard.internal.client.ClientBuilderFactory;
 import org.apache.aries.jax.rs.whiteboard.internal.utils.PropertyHolder;
 import org.apache.aries.osgi.functional.OSGi;
 import org.apache.aries.osgi.functional.OSGiResult;
+import org.apache.cxf.bus.osgi.CXFExtensionBundleListener;
 import org.apache.cxf.jaxrs.impl.RuntimeDelegateImpl;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -67,6 +68,10 @@ public class CxfJaxrsBundleActivator implements BundleActivator {
             _log.debug("Starting the whiteboard factory");
         }
 
+        cxfBundleListener = new CXFExtensionBundleListener(bundleContext.getBundle().getBundleId());
+        bundleContext.addBundleListener(cxfBundleListener);
+        cxfBundleListener.registerExistingBundles(bundleContext);
+
         OSGi<?> whiteboards =
             configurations("org.apache.aries.jax.rs.whiteboard").flatMap(
                 configuration -> runWhiteboard(bundleContext, configuration)
@@ -84,8 +89,7 @@ public class CxfJaxrsBundleActivator implements BundleActivator {
             all(
                 ignore(registerClient()),
                 ignore(runWhiteboard(bundleContext, defaultConfiguration))
-            )
-        .run(bundleContext);
+            ).run(bundleContext);
 
         if (_log.isDebugEnabled()) {
             _log.debug("Whiteboard factory started");
@@ -93,7 +97,7 @@ public class CxfJaxrsBundleActivator implements BundleActivator {
     }
 
     @Override
-    public void stop(BundleContext context) throws Exception {
+    public void stop(BundleContext bundleContext) throws Exception {
         if (_log.isDebugEnabled()) {
             _log.debug("Stopping whiteboard factory");
         }
@@ -102,12 +106,17 @@ public class CxfJaxrsBundleActivator implements BundleActivator {
 
         _whiteboardsResult.close();
 
+        bundleContext.removeBundleListener(cxfBundleListener);
+        cxfBundleListener.shutdown();
+
         if (_log.isDebugEnabled()) {
             _log.debug("Stopped whiteboard factory");
         }
     }
+
     private OSGiResult _defaultOSGiResult;
     private OSGiResult _whiteboardsResult;
+    private CXFExtensionBundleListener cxfBundleListener;
 
     private static String endpointFilter(PropertyHolder configuration ) {
 
