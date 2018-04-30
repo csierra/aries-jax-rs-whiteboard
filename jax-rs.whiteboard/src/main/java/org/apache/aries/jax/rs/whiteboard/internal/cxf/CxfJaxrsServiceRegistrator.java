@@ -57,7 +57,6 @@ import org.apache.cxf.jaxrs.model.ClassResourceInfo;
 import org.apache.cxf.jaxrs.provider.ProviderFactory.ProviderInfoClassComparator;
 import org.apache.cxf.jaxrs.provider.ServerConfigurableFactory;
 import org.apache.cxf.jaxrs.utils.AnnotationUtils;
-import org.osgi.framework.ServiceObjects;
 
 public class CxfJaxrsServiceRegistrator {
 
@@ -188,6 +187,25 @@ public class CxfJaxrsServiceRegistrator {
 
         rewire();
     }
+    private final ServiceTuple<Application> _applicationTuple;
+    private final Bus _bus;
+    private final Collection<ServiceTuple<?>> _providers;
+    private final Collection<ResourceProvider> _services = new ArrayList<>();
+    private volatile boolean _closed = false;
+    private JAXRSServerFactoryBean _jaxRsServerFactoryBean;
+    private Map<String, Object> _properties;
+    private Server _server;
+
+    private static Set<String> getFilterNameBindings(
+        Bus bus, Object provider) {
+        Class<?> pClass = ClassHelper.getRealClass(bus, provider);
+        Set<String> names = AnnotationUtils.getNameBindings(
+            pClass.getAnnotations());
+        if (names.isEmpty()) {
+            names = Collections.singleton(DEFAULT_FILTER_NAME_BINDING);
+        }
+        return names;
+    }
 
     protected synchronized void rewire() {
         if (_server != null) {
@@ -307,26 +325,6 @@ public class CxfJaxrsServiceRegistrator {
         }});
 
         _server.start();
-    }
-
-    private final ServiceTuple<Application> _applicationTuple;
-    private final Bus _bus;
-    private final Collection<ServiceTuple<?>> _providers;
-    private final Collection<ResourceProvider> _services = new ArrayList<>();
-    private volatile boolean _closed = false;
-    private JAXRSServerFactoryBean _jaxRsServerFactoryBean;
-    private Map<String, Object> _properties;
-    private Server _server;
-
-    private static Set<String> getFilterNameBindings(
-        Bus bus, Object provider) {
-        Class<?> pClass = ClassHelper.getRealClass(bus, provider);
-        Set<String> names = AnnotationUtils.getNameBindings(
-            pClass.getAnnotations());
-        if (names.isEmpty()) {
-            names = Collections.singleton(DEFAULT_FILTER_NAME_BINDING);
-        }
-        return names;
     }
 
 }

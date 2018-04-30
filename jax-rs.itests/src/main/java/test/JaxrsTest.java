@@ -1180,6 +1180,80 @@ public class JaxrsTest extends TestHelper {
     }
 
     @Test
+    public void testCxfExtension() {
+        registerApplication(new TestApplication());
+
+        registerExtension(
+            ContextProvider.class,
+            new BusContextProvider(),
+            "Bus provider");
+
+        registerAddon(
+            new CxfExtensionTestAddon(), JAX_RS_APPLICATION_SELECT,
+            String.format(
+                "(%s=%s)", JAX_RS_APPLICATION_BASE, "/test-application"));
+
+        ServiceRegistration<?> extensionRegistration =
+            bundleContext.registerService(
+                new String[]{
+                    ExtensionA.class.getName(),
+                    ExtensionB.class.getName()
+                },
+                new TestCxfExtension(),
+                new Hashtable<String, Object>() {{
+                    put("cxf.extension", Boolean.TRUE);
+                }});
+
+        try {
+            WebTarget path = createDefaultTarget().
+                path("/test-application").
+                path("/extensions").
+                path(ExtensionA.class.getName());
+
+            String result = path.request().get(String.class);
+
+            assertTrue(Boolean.parseBoolean(result));
+
+            path = createDefaultTarget().
+                path("/test-application").
+                path("/extensions").
+                path(ExtensionB.class.getName());
+
+            result = path.request().get(String.class);
+
+            assertTrue(Boolean.parseBoolean(result));
+
+            extensionRegistration.unregister();
+
+            path = createDefaultTarget().
+                path("/test-application").
+                path("/extensions").
+                path(ExtensionA.class.getName());
+
+            result = path.request().get(String.class);
+
+            assertFalse(Boolean.parseBoolean(result));
+
+            path = createDefaultTarget().
+                path("/test-application").
+                path("/extensions").
+                path(ExtensionB.class.getName());
+
+            result = path.request().get(String.class);
+
+            assertFalse(Boolean.parseBoolean(result));
+        }
+        finally {
+            try {
+                extensionRegistration.unregister();
+            }
+            catch (Exception e) {
+            }
+        }
+
+    }
+
+    @Test
     public void testDefaultServiceReferencePropertiesAreAvailableInFeatures() {
         AtomicBoolean executed = new AtomicBoolean();
         AtomicReference<Object> propertyvalue = new AtomicReference<>();
@@ -1575,6 +1649,52 @@ public class JaxrsTest extends TestHelper {
     }
 
     @Test
+    public void testSSEApplication() throws
+        InterruptedException, MalformedURLException {
+
+        registerApplication(
+            new TestSSEApplication(), JAX_RS_APPLICATION_BASE, "/sse");
+
+        SseEventSourceFactory sseFactory = createSseFactory();
+
+        SseEventSource source1 = sseFactory.newSource(
+            createDefaultTarget().path("/sse").path("/subscribe"));
+
+        SseEventSource source2 = sseFactory.newSource(
+                createDefaultTarget().path("/sse").path("/subscribe"));
+
+        ArrayList<String> source1Events = new ArrayList<>();
+        ArrayList<String> source2Events = new ArrayList<>();
+
+        source1.register(event -> source1Events.add(event.readData(String.class)));
+        source2.register(event -> source2Events.add(event.readData(String.class)));
+
+        source1.open();
+        source2.open();
+
+        WebTarget broadcast = createDefaultTarget().path("/sse").path(
+            "/broadcast");
+
+        broadcast.request().post(
+            Entity.entity("message", MediaType.TEXT_PLAIN_TYPE));
+
+        source2.close();
+
+        assertEquals(Arrays.asList("welcome", "message"), source1Events);
+        assertEquals(Arrays.asList("welcome", "message"), source2Events);
+
+        broadcast.request().post(
+            Entity.entity("another message", MediaType.TEXT_PLAIN_TYPE));
+
+        assertEquals(
+            Arrays.asList("welcome", "message", "another message"),
+            source1Events);
+        assertEquals(Arrays.asList("welcome", "message"), source2Events);
+
+        source1.close();
+    }
+
+    @Test
     public void testServiceReferencePropertiesAreAvailableInConfigurationInjection() {
         registerApplication(
             new Application() {
@@ -1950,128 +2070,6 @@ public class JaxrsTest extends TestHelper {
 
         assertEquals(0, runtimeDTO.failedExtensionDTOs.length);
     }
-
-    @Test
-    public void testSSEApplication() throws 
-        InterruptedException, MalformedURLException {
-        
-        registerApplication(
-            new TestSSEApplication(), JAX_RS_APPLICATION_BASE, "/sse");
-
-        SseEventSourceFactory sseFactory = createSseFactory();
-
-        SseEventSource source1 = sseFactory.newSource(
-            createDefaultTarget().path("/sse").path("/subscribe"));
-
-        SseEventSource source2 = sseFactory.newSource(
-                createDefaultTarget().path("/sse").path("/subscribe"));
-
-        ArrayList<String> source1Events = new ArrayList<>();
-        ArrayList<String> source2Events = new ArrayList<>();
-
-        source1.register(event -> source1Events.add(event.readData(String.class)));
-        source2.register(event -> source2Events.add(event.readData(String.class)));
-
-        source1.open();
-        source2.open();
-
-        WebTarget broadcast = createDefaultTarget().path("/sse").path(
-            "/broadcast");
-
-        broadcast.request().post(
-            Entity.entity("message", MediaType.TEXT_PLAIN_TYPE));
-
-        source2.close();
-
-        assertEquals(Arrays.asList("welcome", "message"), source1Events);
-        assertEquals(Arrays.asList("welcome", "message"), source2Events);
-
-        broadcast.request().post(
-            Entity.entity("another message", MediaType.TEXT_PLAIN_TYPE));
-
-        assertEquals(
-            Arrays.asList("welcome", "message", "another message"),
-            source1Events);
-        assertEquals(Arrays.asList("welcome", "message"), source2Events);
-
-        source1.close();
-    }
-
-    @Test
-    public void testCxfExtension() {
-        registerApplication(new TestApplication());
-
-        registerExtension(
-            ContextProvider.class,
-            new BusContextProvider(),
-            "Bus provider");
-
-        registerAddon(
-            new CxfExtensionTestAddon(), JAX_RS_APPLICATION_SELECT,
-            String.format(
-                "(%s=%s)", JAX_RS_APPLICATION_BASE, "/test-application"));
-
-        ServiceRegistration<?> extensionRegistration =
-            bundleContext.registerService(
-                new String[]{
-                    ExtensionA.class.getName(),
-                    ExtensionB.class.getName()
-                },
-                new TestCxfExtension(),
-                new Hashtable<String, Object>() {{
-                    put("cxf.extension", Boolean.TRUE);
-                }});
-
-        try {
-            WebTarget path = createDefaultTarget().
-                path("/test-application").
-                path("/extensions").
-                path(ExtensionA.class.getName());
-
-            String result = path.request().get(String.class);
-
-            assertTrue(Boolean.parseBoolean(result));
-
-            path = createDefaultTarget().
-                path("/test-application").
-                path("/extensions").
-                path(ExtensionB.class.getName());
-
-            result = path.request().get(String.class);
-
-            assertTrue(Boolean.parseBoolean(result));
-
-            extensionRegistration.unregister();
-
-            path = createDefaultTarget().
-                path("/test-application").
-                path("/extensions").
-                path(ExtensionA.class.getName());
-
-            result = path.request().get(String.class);
-
-            assertFalse(Boolean.parseBoolean(result));
-
-            path = createDefaultTarget().
-                path("/test-application").
-                path("/extensions").
-                path(ExtensionB.class.getName());
-
-            result = path.request().get(String.class);
-
-            assertFalse(Boolean.parseBoolean(result));
-        }
-        finally {
-            try {
-                extensionRegistration.unregister();
-            }
-            catch (Exception e) {
-            }
-        }
-
-    }
-
-
     private static Function<RuntimeDTO, FailedApplicationDTO[]>
         FAILED_APPLICATIONS = r -> r.failedApplicationDTOs;
     private Collection<ServiceRegistration<?>> _registrations =

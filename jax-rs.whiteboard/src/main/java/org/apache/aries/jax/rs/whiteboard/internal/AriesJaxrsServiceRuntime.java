@@ -418,33 +418,6 @@ public class AriesJaxrsServiceRuntime implements JaxrsServiceRuntime {
         return runtimeDTO;
     }
 
-    public void removedServiceForName(
-        CachingServiceReference<?> serviceReference) {
-
-        _servicesForName.remove(getServiceName(serviceReference::getProperty));
-
-        if (_log.isDebugEnabled()) {
-            _log.debug(
-                "Unregistered service {} for name {}",
-                serviceReference,
-                getServiceName(serviceReference::getProperty));
-        }
-    }
-
-    private ConcurrentHashMap<String, CachingServiceReference<?>>
-        _servicesForName = new ConcurrentHashMap<>();
-
-    private Stream<FailedApplicationDTO>
-        contextDependentApplicationsDTOStream() {
-
-        return _contextDependentApplications.stream().map(
-            sr -> buildFailedApplicationDTO(
-                AriesJaxrsWhiteboardConstants.
-                    FAILURE_REASON_REQUIRED_CONTEXT_UNAVAILABLE,
-                sr)
-        );
-    }
-
     public void removeApplicationDependentExtension(
         CachingServiceReference<?> cachingServiceReference) {
 
@@ -683,6 +656,19 @@ public class AriesJaxrsServiceRuntime implements JaxrsServiceRuntime {
         return _shadowedApplications.remove(serviceReference);
     }
 
+    public void removedServiceForName(
+        CachingServiceReference<?> serviceReference) {
+
+        _servicesForName.remove(getServiceName(serviceReference::getProperty));
+
+        if (_log.isDebugEnabled()) {
+            _log.debug(
+                "Unregistered service {} for name {}",
+                serviceReference,
+                getServiceName(serviceReference::getProperty));
+        }
+    }
+
     public ApplicationRuntimeInformation setApplicationForPath(
         String path, CachingServiceReference<Application> serviceReference,
         CxfJaxrsServiceRegistrator cxfJaxRsServiceRegistrator) {
@@ -757,6 +743,8 @@ public class AriesJaxrsServiceRuntime implements JaxrsServiceRuntime {
         new CopyOnWriteArrayList<>();
     private Collection<CachingServiceReference<?>> _invalidResources =
         new CopyOnWriteArrayList<>();
+    private ConcurrentHashMap<String, CachingServiceReference<?>>
+        _servicesForName = new ConcurrentHashMap<>();
     private Collection<CachingServiceReference<Application>>
         _shadowedApplications = new CopyOnWriteArrayList<>();
     private Collection<CachingServiceReference<Application>>
@@ -783,6 +771,18 @@ public class AriesJaxrsServiceRuntime implements JaxrsServiceRuntime {
         failedApplicationDTO.failureReason = reason;
 
         return failedApplicationDTO;
+    }
+
+    private static FailedResourceDTO buildFailedResourceDTO(
+        int reason, CachingServiceReference<?> serviceReference) {
+
+        FailedResourceDTO failedResourceDTO = new FailedResourceDTO();
+
+        populateBaseDTO(failedResourceDTO, serviceReference);
+
+        failedResourceDTO.failureReason = reason;
+
+        return failedResourceDTO;
     }
 
     private static <T> BiFunction<String, Collection<T>, Collection<T>> merger(
@@ -1030,18 +1030,6 @@ public class AriesJaxrsServiceRuntime implements JaxrsServiceRuntime {
         return failedExtensionDTO;
     }
 
-    private static FailedResourceDTO buildFailedResourceDTO(
-        int reason, CachingServiceReference<?> serviceReference) {
-
-        FailedResourceDTO failedResourceDTO = new FailedResourceDTO();
-
-        populateBaseDTO(failedResourceDTO, serviceReference);
-
-        failedResourceDTO.failureReason = reason;
-
-        return failedResourceDTO;
-    }
-
     private Stream<FailedApplicationDTO> clashingApplicationsDTOStream() {
         return _clashingApplications.stream().map(
             sr -> buildFailedApplicationDTO(
@@ -1059,6 +1047,17 @@ public class AriesJaxrsServiceRuntime implements JaxrsServiceRuntime {
         return _clashingResources.stream().map(
             sr -> buildFailedResourceDTO(
                 DTOConstants.FAILURE_REASON_DUPLICATE_NAME, sr));
+    }
+
+    private Stream<FailedApplicationDTO>
+        contextDependentApplicationsDTOStream() {
+
+        return _contextDependentApplications.stream().map(
+            sr -> buildFailedApplicationDTO(
+                AriesJaxrsWhiteboardConstants.
+                    FAILURE_REASON_REQUIRED_CONTEXT_UNAVAILABLE,
+                sr)
+        );
     }
 
     private Stream<FailedApplicationDTO> dependentApplicationsDTOStream() {
@@ -1132,17 +1131,17 @@ public class AriesJaxrsServiceRuntime implements JaxrsServiceRuntime {
             );
     }
 
-    private Stream<FailedExtensionDTO> invalidExtensionsDTOStream() {
-        return _invalidExtensions.stream().map(
-            sr -> buildFailedExtensionDTO(
-                DTOConstants.FAILURE_REASON_NOT_AN_EXTENSION_TYPE, sr)
-        );
-    }
-
     private Stream<FailedApplicationDTO> invalidApplicationsDTOStream() {
         return _invalidApplications.stream().
             map(sr -> buildFailedApplicationDTO(
                 DTOConstants.FAILURE_REASON_VALIDATION_FAILED, sr)
+        );
+    }
+
+    private Stream<FailedExtensionDTO> invalidExtensionsDTOStream() {
+        return _invalidExtensions.stream().map(
+            sr -> buildFailedExtensionDTO(
+                DTOConstants.FAILURE_REASON_NOT_AN_EXTENSION_TYPE, sr)
         );
     }
 
@@ -1198,8 +1197,7 @@ public class AriesJaxrsServiceRuntime implements JaxrsServiceRuntime {
         public int hashCode() {
             return _cachingServiceReference.hashCode();
         }
-
-        @Override
+        Bus _bus;        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1209,10 +1207,9 @@ public class AriesJaxrsServiceRuntime implements JaxrsServiceRuntime {
             return _cachingServiceReference.equals(
                 that._cachingServiceReference);
         }
-
-        Bus _bus;
         CachingServiceReference _cachingServiceReference;
         Class<?> _class;
+
 
     }
 
@@ -1225,13 +1222,11 @@ public class AriesJaxrsServiceRuntime implements JaxrsServiceRuntime {
             _cachingServiceReference = cachingServiceReference;
             _class = aClass;
         }
-
-        @Override
+        CachingServiceReference _cachingServiceReference;        @Override
         public int hashCode() {
             return _cachingServiceReference.hashCode();
         }
-
-        @Override
+        Class<?> _class;        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
@@ -1242,8 +1237,8 @@ public class AriesJaxrsServiceRuntime implements JaxrsServiceRuntime {
                 that._cachingServiceReference);
         }
 
-        CachingServiceReference _cachingServiceReference;
-        Class<?> _class;
+
+
 
     }
 

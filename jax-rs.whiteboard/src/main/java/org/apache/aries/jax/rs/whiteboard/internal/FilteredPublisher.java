@@ -77,10 +77,9 @@ public class FilteredPublisher implements AutoCloseable {
             }
         }
     }
-
-    private Publisher<? super CachingServiceReference<?>> _publisher;
-    private Filter _filter;
     private AtomicBoolean _closed = new AtomicBoolean(false);
+    private Filter _filter;
+    private Publisher<? super CachingServiceReference<?>> _publisher;
     private Map<CachingServiceReference<?>, OSGiResult> _results =
         new HashMap<>();
 

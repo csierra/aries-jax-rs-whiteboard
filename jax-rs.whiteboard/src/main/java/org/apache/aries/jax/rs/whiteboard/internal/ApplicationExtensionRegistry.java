@@ -42,6 +42,62 @@ public class ApplicationExtensionRegistry implements AutoCloseable {
         );
     }
 
+    public void registerExtensionInApplication(
+        String applicationName, CachingServiceReference<?> extension) {
+
+        synchronized (ApplicationExtensionRegistry.this) {
+            Collection<FilteredPublisher> publishers =
+                _applicationPublishers.get(applicationName);
+
+            if (publishers != null) {
+                for (FilteredPublisher publisher : publishers) {
+                    publisher.publishIfMatched(extension);
+                }
+            }
+
+            _applicationRegisteredExtensions.compute(
+                applicationName,
+                (__, set) -> {
+                    if (set == null) {
+                        set = new HashSet<>();
+                    }
+
+                    set.add(extension);
+
+                    return set;
+                }
+            );
+        }
+    }
+
+    public void unregisterExtensionInApplication(
+        String applicationName, CachingServiceReference<?> extension) {
+
+        synchronized (ApplicationExtensionRegistry.this) {
+            Collection<FilteredPublisher> publishers =
+                _applicationPublishers.get(applicationName);
+
+            if (publishers != null) {
+                for (FilteredPublisher publisher : publishers) {
+                    publisher.retractIfMatched(extension);
+                }
+            }
+
+            _applicationRegisteredExtensions.compute(
+                applicationName,
+                (__, set) -> {
+                    if (set == null) {
+                        set = new HashSet<>();
+                    }
+
+                    set.remove(extension);
+
+                    return set;
+                }
+            );
+        }
+    }
+
     public OSGi<CachingServiceReference<?>> waitForApplicationExtension(
             String applicationName, String extensionFilter) {
 
@@ -100,63 +156,6 @@ public class ApplicationExtensionRegistry implements AutoCloseable {
 
         });
     }
-
-    public void registerExtensionInApplication(
-        String applicationName, CachingServiceReference<?> extension) {
-
-        synchronized (ApplicationExtensionRegistry.this) {
-            Collection<FilteredPublisher> publishers =
-                _applicationPublishers.get(applicationName);
-
-            if (publishers != null) {
-                for (FilteredPublisher publisher : publishers) {
-                    publisher.publishIfMatched(extension);
-                }
-            }
-
-            _applicationRegisteredExtensions.compute(
-                applicationName,
-                (__, set) -> {
-                    if (set == null) {
-                        set = new HashSet<>();
-                    }
-
-                    set.add(extension);
-
-                    return set;
-                }
-            );
-        }
-    }
-
-    public void unregisterExtensionInApplication(
-        String applicationName, CachingServiceReference<?> extension) {
-
-        synchronized (ApplicationExtensionRegistry.this) {
-            Collection<FilteredPublisher> publishers =
-                _applicationPublishers.get(applicationName);
-
-            if (publishers != null) {
-                for (FilteredPublisher publisher : publishers) {
-                    publisher.retractIfMatched(extension);
-                }
-            }
-
-            _applicationRegisteredExtensions.compute(
-                applicationName,
-                (__, set) -> {
-                    if (set == null) {
-                        set = new HashSet<>();
-                    }
-
-                    set.remove(extension);
-
-                    return set;
-                }
-            );
-        }
-    }
-
     private final HashMap
         <String, Collection<FilteredPublisher>>
             _applicationPublishers;

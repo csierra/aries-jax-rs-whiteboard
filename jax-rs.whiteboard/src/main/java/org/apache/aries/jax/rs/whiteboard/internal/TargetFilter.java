@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
 
 public class TargetFilter<T> implements Predicate<CachingServiceReference<T>>  {
 
+    private static final Logger _log = LoggerFactory.getLogger(TargetFilter.class);
+
     public TargetFilter(ServiceReference<?> serviceRuntimeReference) {
         _serviceRuntimeReference = serviceRuntimeReference;
     }
@@ -58,9 +60,6 @@ public class TargetFilter<T> implements Predicate<CachingServiceReference<T>>  {
 
         return filter.match(_serviceRuntimeReference);
     }
-
-    private static final Logger _log = LoggerFactory.getLogger(TargetFilter.class);
-
     private final ServiceReference<?> _serviceRuntimeReference;
 
 }

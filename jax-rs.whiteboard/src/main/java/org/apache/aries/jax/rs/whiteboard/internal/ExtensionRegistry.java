@@ -41,6 +41,30 @@ public class ExtensionRegistry implements AutoCloseable {
         }
     }
 
+    public void registerExtension(
+        CachingServiceReference<?> extension) {
+
+        synchronized (ExtensionRegistry.this) {
+            for (FilteredPublisher publisher : _extensionPublishers) {
+                publisher.publishIfMatched(extension);
+            }
+
+            _registeredExtensions.add(extension);
+        }
+    }
+
+    public void unregisterExtension(
+        CachingServiceReference<?> extension) {
+
+        synchronized (ExtensionRegistry.this) {
+            for (FilteredPublisher publisher : _extensionPublishers) {
+                publisher.retractIfMatched(extension);
+            }
+
+            _registeredExtensions.remove(extension);
+        }
+    }
+
     public OSGi<CachingServiceReference<?>> waitForExtension(
         String extensionFilter) {
 
@@ -80,31 +104,6 @@ public class ExtensionRegistry implements AutoCloseable {
 
         });
     }
-
-    public void registerExtension(
-        CachingServiceReference<?> extension) {
-
-        synchronized (ExtensionRegistry.this) {
-            for (FilteredPublisher publisher : _extensionPublishers) {
-                publisher.publishIfMatched(extension);
-            }
-
-            _registeredExtensions.add(extension);
-        }
-    }
-
-    public void unregisterExtension(
-        CachingServiceReference<?> extension) {
-
-        synchronized (ExtensionRegistry.this) {
-            for (FilteredPublisher publisher : _extensionPublishers) {
-                publisher.retractIfMatched(extension);
-            }
-
-            _registeredExtensions.remove(extension);
-        }
-    }
-
     private final HashSet<FilteredPublisher> _extensionPublishers;
     private final HashSet<CachingServiceReference<?>> _registeredExtensions;
 
