@@ -727,29 +727,24 @@ public class Whiteboard {
         return
             getCxfExtensions(tuple.getCachingServiceReference()).
                 flatMap(extensions ->
-            deployRegistrator(extensions, tuple, properties).
+            createRegistrator(extensions, tuple, properties).
                 flatMap(registrator ->
             registerCXFServletService(
                 registrator.getBus(), properties, contextReference).then(
+            register(
+                CxfJaxrsServiceRegistrator.class, () -> registrator, properties).then(
             just(registrator)
-        )));
+        ))));
     }
 
-    private OSGi<CxfJaxrsServiceRegistrator> deployRegistrator(
+    private OSGi<CxfJaxrsServiceRegistrator> createRegistrator(
         Map<String, ServiceTuple<Object>> extensions,
         ServiceTuple<Application> tuple, Supplier<Map<String, ?>> props) {
 
         return
-            just(() ->
-                    new CxfJaxrsServiceRegistrator(
-                        createBus(extensions), tuple, props.get())).
-                flatMap(registrator ->
-            onClose(registrator::close).then(
-            register(
-                    CxfJaxrsServiceRegistrator.class, () -> registrator, props).
-                then(
-            just(registrator)
-        )));
+            just(() -> new CxfJaxrsServiceRegistrator(
+                    createBus(extensions), tuple, props.get())).
+            effects(__ -> {}, CxfJaxrsServiceRegistrator::close);
     }
 
     @SuppressWarnings("unchecked")
