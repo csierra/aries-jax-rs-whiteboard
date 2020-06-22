@@ -15,14 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.cxf.jaxrs.client;
+package org.apache.aries.jax.rs.whiteboard.cxf.jaxrs.client;
 
 import java.util.concurrent.ExecutorService;
 
 import javax.ws.rs.client.RxInvokerProvider;
 import javax.ws.rs.client.SyncInvoker;
 
+import org.apache.cxf.jaxrs.client.ClientState;
 import org.apache.cxf.jaxrs.client.SyncInvokerImpl;
+import org.apache.cxf.jaxrs.client.WebClient;
 import org.osgi.service.jaxrs.client.PromiseRxInvoker;
 import org.osgi.util.promise.PromiseFactory;
 
