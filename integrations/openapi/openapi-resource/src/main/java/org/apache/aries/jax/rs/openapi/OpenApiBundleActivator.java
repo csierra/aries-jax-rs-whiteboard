@@ -21,12 +21,14 @@ import io.swagger.v3.oas.models.OpenAPI;
 import org.apache.aries.component.dsl.CachingServiceReference;
 import org.apache.aries.component.dsl.OSGi;
 import org.apache.aries.component.dsl.OSGiResult;
+import org.apache.aries.component.dsl.Utils;
 import org.osgi.annotation.bundle.Header;
 import org.osgi.framework.*;
 
 import java.util.*;
 
 import static org.apache.aries.component.dsl.OSGi.*;
+import static org.apache.aries.component.dsl.Utils.accumulate;
 
 /**
  * @author Carlos Sierra Andrés
@@ -39,25 +41,23 @@ public class OpenApiBundleActivator implements BundleActivator {
     @Override
     public void start(BundleContext bundleContext) throws Exception {
         OSGi<?> program = serviceReferences(OpenAPI.class).flatMap(
-            sr -> service(sr).flatMap(
-                openAPI -> just(
-                    new OpenApiPrototypeServiceFactory(
-                        new PropertyWrapper(sr),
-                        openAPI)
+            sr -> combine(
+                OpenApiPrototypeServiceFactory::new,
+                    just(new PropertyWrapper(sr)),
+                    service(sr),
+                    accumulate(
+                        services(SchemaProcessor.class)
+                    ).map(
+                        HashSet::new
+                    )
                 )
-            ).flatMap(
+            .flatMap(
                 factory -> register(
                     Object.class,
                     factory,
                     () -> getProperties(sr)
-                ).then(
-                    services(SchemaProcessor.class).foreach(
-                        factory::addModelConverter,
-                        factory::removeModelConverter
-                    )
                 )
-            )
-        );
+            ));
 
         result = program.run(bundleContext);
     }

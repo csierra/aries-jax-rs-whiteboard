@@ -35,13 +35,14 @@ public class OpenApiPrototypeServiceFactory
 
     private final PropertyWrapper propertyWrapper;
     private final OpenAPI openAPI;
-    private final Set<SchemaProcessor> schemaProcessors = ConcurrentHashMap.newKeySet();
+    private final Set<SchemaProcessor> schemaProcessors;
 
     public OpenApiPrototypeServiceFactory(
-        PropertyWrapper propertyWrapper, OpenAPI openAPI) {
+        PropertyWrapper propertyWrapper, OpenAPI openAPI, Set<SchemaProcessor> schemaProcessors) {
 
         this.propertyWrapper = propertyWrapper;
         this.openAPI = openAPI;
+	this.schemaProcessors = schemaProcessors;
     }
 
     @Override
@@ -70,14 +71,6 @@ public class OpenApiPrototypeServiceFactory
         Bundle bundle,
         ServiceRegistration<Object> serviceRegistration,
         Object object) {
-    }
-
-    void addModelConverter(SchemaProcessor schemaProcessor) {
-        schemaProcessors.add(schemaProcessor);
-    }
-
-    void removeModelConverter(SchemaProcessor schemaProcessor) {
-        schemaProcessors.remove(schemaProcessor);
     }
 
 }
