@@ -23,18 +23,12 @@
     <parent>
         <groupId>org.apache.aries.jax.rs</groupId>
         <artifactId>openapi-integration</artifactId>
-        <version>1.0.3-SNAPSHOT</version>
-        <relativePath>..</relativePath>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>org.apache.aries.jax.rs.openapi.itest</artifactId>
     <description>Apache Aries Open API JAX-RS Integration Tests</description>
     <name>Apache Aries JAX-RS Open API Integration Tests</name>
-
-    <properties>
-        <maven.deploy.skip>true</maven.deploy.skip>
-        <maven.install.skip>true</maven.install.skip>
-    </properties>
 
     <build>
         <plugins>
@@ -69,6 +63,17 @@
     </build>
     <dependencies>
         <dependency>
+            <groupId>org.apache.geronimo.specs</groupId>
+            <artifactId>geronimo-jsonb_1.0_spec</artifactId>
+            <version>1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.johnzon</groupId>
+            <artifactId>johnzon-osgi</artifactId>
+            <version>1.2.9-SNAPSHOT</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-jaxrs2</artifactId>
             <version>${openapi.version}</version>
@@ -87,13 +92,13 @@
         <dependency>
             <groupId>org.apache.aries.jax.rs</groupId>
             <artifactId>org.apache.aries.jax.rs.whiteboard</artifactId>
-            <version>${aries.jaxrs.version}</version>
+            <version>${project.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.aries.jax.rs</groupId>
             <artifactId>org.apache.aries.jax.rs.openapi.resource</artifactId>
-            <version>1.0.3-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -111,6 +116,10 @@
         <dependency>
             <groupId>org.osgi</groupId>
             <artifactId>osgi.core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.namespace.service</artifactId>
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>

@@ -15,6 +15,8 @@
 #    specific language governing permissions and limitations
 #    under the License.
 
+#-runjdb: 8000
+
 -standalone: true
 -runpath: \
 	ch.qos.logback.classic,\
@@ -22,11 +24,10 @@
 	org.apache.felix.logback,\
 	slf4j.api
 -runsystempackages: \
-	org.slf4j;version=1.7.25,\
-	org.slf4j.event;version=1.7.25,\
-	org.slf4j.helpers;version=1.7.25,\
-	org.slf4j.spi;version=1.7.25,\
-	${bndjava15temorarysupplementalpackages}
+	org.slf4j;version=${slf4j.version},\
+	org.slf4j.event;version=${slf4j.version},\
+	org.slf4j.helpers;version=${slf4j.version},\
+	org.slf4j.spi;version=${slf4j.version}
 
 -runfw: org.eclipse.osgi
 
@@ -34,7 +35,8 @@
 
 -runrequires: \
 	osgi.identity;filter:='(osgi.identity=org.apache.aries.jax.rs.openapi.resource)',\
-	osgi.identity;filter:='(osgi.identity=org.apache.aries.jax.rs.openapi.itest)'
+	osgi.identity;filter:='(osgi.identity=org.apache.aries.jax.rs.openapi.itest)',\
+	osgi.identity;filter:='(osgi.identity=org.apache.felix.gogo.command)'
 
 -runsystemcapabilities: ${native_capability}
 -runproperties: \
@@ -58,21 +60,35 @@
 	io.swagger.core.v3.swagger-models;version='[2.1.0,2.1.1)',\
 	jakarta.xml.bind-api;version='[2.3.3,2.3.4)',\
 	javax.validation.api;version='[1.1.0,1.1.1)',\
-	org.apache.aries.jax.rs.openapi.itest;version='[1.0.3,1.0.4)',\
-	org.apache.aries.jax.rs.openapi.resource;version='[1.0.3,1.0.4)',\
-	org.apache.aries.jax.rs.whiteboard;version='[1.0.9,1.0.10)',\
-	org.apache.aries.spifly.dynamic.framework.extension;version='[1.3.0,1.3.1)',\
+	org.apache.aries.jax.rs.openapi.itest;version='[1.0.11,1.0.12)',\
+	org.apache.aries.jax.rs.openapi.resource;version='[1.0.11,1.0.12)',\
+	org.apache.aries.jax.rs.whiteboard;version='[1.0.11,1.0.12)',\
+	org.apache.aries.spifly.dynamic.framework.extension;version='[1.3.2,1.3.3)',\
 	org.apache.commons.lang3;version='[3.10.0,3.10.1)',\
-	org.apache.felix.configadmin;version='[1.8.14,1.8.15)',\
+	org.apache.felix.configadmin;version='[1.9.18,1.9.19)',\
+	org.apache.felix.gogo.command;version='[1.1.2,1.1.3)',\
+	org.apache.felix.gogo.runtime;version='[1.1.4,1.1.5)',\
+	org.apache.felix.gogo.shell;version='[1.1.4,1.1.5)',\
 	org.apache.felix.http.jetty;version='[4.0.8,4.0.9)',\
 	org.apache.felix.http.servlet-api;version='[1.1.2,1.1.3)',\
 	org.apache.geronimo.specs.geronimo-annotation_1.3_spec;version='[1.1.0,1.1.1)',\
 	org.apache.geronimo.specs.geronimo-jaxrs_2.1_spec;version='[1.1.0,1.1.1)',\
+	org.apache.geronimo.specs.geronimo-json_1.1_spec;version='[1.1.0,1.1.1)',\
+	org.apache.geronimo.specs.geronimo-jsonb_1.0_spec;version='[1.2.0,1.2.1)',\
+	org.apache.johnzon.core;version='[1.2.9,1.2.10)',\
+	org.apache.johnzon.jsonb;version='[1.2.9,1.2.10)',\
+	org.apache.johnzon.mapper;version='[1.2.9,1.2.10)',\
+	org.apache.johnzon.osgi;version='[1.2.9,1.2.10)',\
 	org.osgi.service.jaxrs;version='[1.0.0,1.0.1)',\
+	org.osgi.util.converter;version='[1.0.0,1.0.1)',\
 	org.osgi.util.function;version='[1.1.0,1.1.1)',\
 	org.osgi.util.promise;version='[1.1.0,1.1.1)',\
 	org.yaml.snakeyaml;version='[1.24.0,1.24.1)',\
 	osgi.enroute.hamcrest.wrapper;version='[1.3.0,1.3.1)',\
 	osgi.enroute.junit.wrapper;version='[4.12.0,4.12.1)'
+
+-runstartlevel: \
+	order=sortbynameversion,\
+	begin=-1
 
 -include: -personal.bnd
