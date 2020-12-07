@@ -21,8 +21,8 @@ import io.swagger.v3.oas.integration.SwaggerConfiguration;
 import io.swagger.v3.oas.models.OpenAPI;
 
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.aries.component.dsl.CachingServiceReference;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.PrototypeServiceFactory;
 import org.osgi.framework.ServiceRegistration;
@@ -38,11 +38,11 @@ public class OpenApiPrototypeServiceFactory
     private final Set<SchemaProcessor> schemaProcessors;
 
     public OpenApiPrototypeServiceFactory(
-        PropertyWrapper propertyWrapper, OpenAPI openAPI, Set<SchemaProcessor> schemaProcessors) {
+        PropertyWrapper propertyWrapper, Set<SchemaProcessor> schemaProcessors) {
 
         this.propertyWrapper = propertyWrapper;
-        this.openAPI = openAPI;
-	this.schemaProcessors = schemaProcessors;
+        this.openAPI = propertyWrapper.getOpenAPI();
+	    this.schemaProcessors = schemaProcessors;
     }
 
     @Override
@@ -71,6 +71,10 @@ public class OpenApiPrototypeServiceFactory
         Bundle bundle,
         ServiceRegistration<Object> serviceRegistration,
         Object object) {
+    }
+
+    public CachingServiceReference<OpenAPI> getCachingServiceReference() {
+        return propertyWrapper.getCachingServiceReference();
     }
 
 }

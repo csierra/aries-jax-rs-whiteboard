@@ -40,24 +40,26 @@ public class OpenApiBundleActivator implements BundleActivator {
 
     @Override
     public void start(BundleContext bundleContext) throws Exception {
-        OSGi<?> program = serviceReferences(OpenAPI.class).flatMap(
-            sr -> combine(
-                OpenApiPrototypeServiceFactory::new,
-                    just(new PropertyWrapper(sr)),
-                    service(sr),
-                    accumulate(
-                        services(SchemaProcessor.class)
-                    ).map(
-                        HashSet::new
-                    )
-                )
-            .flatMap(
-                factory -> register(
-                    Object.class,
-                    factory,
-                    () -> getProperties(sr)
-                )
-            ));
+        final OSGi<HashSet<SchemaProcessor>> schemaProcessors = accumulate(
+            services(SchemaProcessor.class)
+        ).map(
+            HashSet::new
+        );
+        final OSGi<PropertyWrapper> propertyWrappers = serviceReferences(
+            OpenAPI.class
+        ).flatMap(
+            sr -> combine(PropertyWrapper::new, just(sr), service(sr))
+        );
+
+        OSGi<?> program = combine(
+            OpenApiPrototypeServiceFactory::new,
+            propertyWrappers, schemaProcessors
+        ).flatMap(factory -> register(
+            Object.class,
+            factory,
+            () -> getProperties(
+                factory.getCachingServiceReference()))
+        );
 
         result = program.run(bundleContext);
     }

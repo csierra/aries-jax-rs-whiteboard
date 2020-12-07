@@ -25,10 +25,23 @@ import java.util.function.Consumer;
 
 public class PropertyWrapper {
 
-    private CachingServiceReference<OpenAPI> cachingServiceReference;
+    public CachingServiceReference<OpenAPI> getCachingServiceReference() {
+        return cachingServiceReference;
+    }
 
-    public PropertyWrapper(CachingServiceReference<OpenAPI> cachingServiceReference) {
+    private CachingServiceReference<OpenAPI> cachingServiceReference;
+    private OpenAPI openAPI;
+
+    public OpenAPI getOpenAPI() {
+        return openAPI;
+    }
+
+    public PropertyWrapper(
+        CachingServiceReference<OpenAPI> cachingServiceReference,
+        OpenAPI openAPI) {
+
         this.cachingServiceReference = cachingServiceReference;
+        this.openAPI = openAPI;
     }
 
     public void applyBoolean(String property, Consumer<Boolean> consumer) {
