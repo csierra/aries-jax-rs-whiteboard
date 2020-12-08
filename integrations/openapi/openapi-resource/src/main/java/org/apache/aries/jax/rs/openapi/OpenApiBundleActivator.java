@@ -40,10 +40,13 @@ public class OpenApiBundleActivator implements BundleActivator {
 
     @Override
     public void start(BundleContext bundleContext) throws Exception {
-        final OSGi<HashSet<SchemaProcessor>> schemaProcessors = accumulate(
-            services(SchemaProcessor.class)
-        ).map(
-            HashSet::new
+        final OSGi<HashSet<SchemaProcessor>> schemaProcessors = coalesce(
+	    accumulate(
+                services(SchemaProcessor.class)
+            ).map(
+                HashSet::new
+            ),
+            just(HashSet::new)
         );
         final OSGi<PropertyWrapper> propertyWrappers = serviceReferences(
             OpenAPI.class
